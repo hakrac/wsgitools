@@ -103,3 +103,33 @@ class Router:
     def _create_middleware(self, handler, rule, methods):
         path = Path(rule)
         self.tree[path] = Middleware(handler, methods)
+
+    def pipe(self, rule='%', methods=['GET']):
+        def create_wrapper(f):
+            self._create_middleware(f, rule, methods)
+            return f
+        return create_wrapper
+    
+    def get(self, rule='%'):
+        def create_wrapper(f):
+            self._create_endpoint(f, rule, ['GET'])
+            return f
+        return create_wrapper
+    
+    def post(self, rule='%'):
+        def create_wrapper(f):
+            self._create_endpoint(f, rule, ['POST'])
+            return f
+        return create_wrapper
+
+    def delete(self, rule='%'):
+        def create_wrapper(f):
+            self._create_endpoint(f, rule, ['DELETE'])
+            return f
+        return create_wrapper
+    
+    def put(self, rule='%'):
+        def create_wrapper(f):
+            self._create_endpoint(f, rule, ['PUT'])
+            return f
+        return create_wrapper
