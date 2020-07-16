@@ -1,64 +1,30 @@
 import re
 
 class Path:
-    '''
-    Path composed out of multiple segments, which can be used for routing.
-    '''
 
-    PATH_STAR = '\*'
-    PATH_CHAR = '\+'
-    PATH_ALL = '%'
-
-    def __init__(self, path, endpoint=False, ignorecase=True):
-        self.ignorecase = ignorecase
-        self._segments = list(filter(lambda s: len(s) > 0, path.split('/')))
-        for i in range(len(self._segments)):
-            self._segments[i] = self._segment_to_regex(self._segments[i]) 
+    def __init__(self, rule, endpoint=False):
+        self.rule = rule.strip()
         self.endpoint = endpoint
+        self.path_args = {}
 
-    def concat(self, segments):
-        if isinstance(segments, Path):
-            segments = segments._segments
-        if len(segments) > 0:
-            self._segments = segments + self._segments
+        self.rule = re.sub('[\^\$]', '', self.rule)
+        self.rule = re.sub(r'<(?P<arg>\w+)>', '(?P<\g<arg>>\\\\w+)', self.rule)
 
-    def _segment_to_regex(self, segment):
-        '''Turns path segment into a regular expression'''
-        segment = segment.strip()
-        segment = re.sub('[\^\$]', '', segment)
-        segment = re.sub(self.PATH_STAR, '.*', segment)
-        segment = re.sub(self.PATH_CHAR, '.', segment)
-        # embed named regex group for path arguments
-        # /hello/<name>/ -> ^/hello/(?P<name>\w+)
-        segment = re.sub(r'<(?P<arg>\w+)>', '(?P<\g<arg>>\\\\w+)', segment)
-        flags = 0
-        if self.ignorecase:
-            flags &= re.IGNORECASE
-        return re.compile(segment, flags)
+        if re.match('.*/$', self.rule) is None:
+            self.rule += '/'
 
-    def match(self, path):
-        '''Tests this path against a path'''
-        path = tuple(filter(lambda s: len(s) > 0, path.split('/')))
-        
-        if re.compile(self.PATH_ALL) not in self._segments:
-            if self.endpoint:
-                if len(path) != len(self._segments):
-                    return None
-            if len(path) < len(self._segments):
-                return None
+        if re.match('.*\$$', self.rule) is None and endpoint:
+            self.rule += '$'
 
-        path_args = {}
-        for i in range(len(self._segments)):
-            # PATH_ALL matches multiple segments
-            if self._segments[i] == re.compile(self.PATH_ALL):
-                break
-            match = self._segments[i].fullmatch(path[i])
-            if match is None:
-                return None
-            path_args.update(match.groupdict())
-        return path_args
+    def abs_to(self, path):
+        if not path.endpoint:
+            self.rule = path.rule + self.rule
+            self.rule = re.sub('/+', '/', self.rule)
+
+    def match(self, reqpath):
+        if not re.match('.*/$', reqpath):
+            reqpath += '/'
+        return re.match(self.rule, reqpath)
 
     def __repr__(self):
-        if self.endpoint:
-            return '/' + self._segments.join('/')
-        return '/' + self._segments.join('/') + '/'
+        return self.rule

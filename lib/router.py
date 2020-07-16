@@ -1,135 +1,105 @@
+from lib.path import Path
+from lib.middleware import Middleware
 from werkzeug import Request, Response
 from wsgiref import simple_server
 import re
 import functools
 import copy
-
 if __name__ == '__main__':
-    from lib.path import Path
+    # from lib.path import Path
     from lib.response import Response
     from lib.request import Request
 else:
-    from .path import Path
+    # from .path import Path
     from .response import Response
     from .request import Request
 
-class Middleware:
-    def __init__(self, handler, path, methods, is_endpoint=True):
-        self.handler = handler
-        self.path = Path(path, endpoint=is_endpoint)
-        self.is_endpoint = is_endpoint
-        self.methods = methods
-    
-    def __call__(self, next, req, res):
-        if self.is_endpoint:
-            return self.handler(req, res)
-        return self.handler(next, req, res)
-
-class Pipeline(Middleware):
-
-    def __init__(self, stack, path):
+class Pipeline:
+    '''Represents the execution pipeline of handlers'''
+    def __init__(self, stack):
         self.stack = stack
         self._i = 0
-        self.end = False
-        super().__init__(self.handler, path, ['GET', 'POST', 'DELETE', 'PUT'], is_endpoint=False)
     
-    def build(self):
-        for middleware in self.stack:
-            # make middleware path absolute
-            middleware.path.concat(self.path)
-            if isinstance(middleware, Pipeline):
-                middleware.build()
-
     def run_next(self, req, res):
         try:
-            next = self.stack[self._i]
+            path, next = self.stack[self._i]
         except IndexError:
             return self.file_not_found(req, res)
         self._i += 1
 
-        if self.method in next.methods:
-            match = next.path.match(req.PATH_INFO)
-            if match is not None:
-                if match:
-                    req.path_args.update(match)
-                if next.is_endpoint:
-                    return next.handler(req, res)
-                return next.handler(self.run_next, req, res)
+        req.path_args = path.path_args
 
-        return self.run_next(req, res)
+        if path.endpoint:
+            return next.handler(req, res)
+        return next.handler(self.run_next, req, res)
 
     def file_not_found(self, req, res):
         # file was not found in pipeline
-        if self.next:
-            return self.next(req, res)
+        raise FileNotFoundError
 
-    def handler(self, next, req, res):
+    def handler(self, req, res):
         self._i = 0
-        self.next = next
-        self.method = req.REQUEST_METHOD
         return self.run_next(req, res)
 
+class RouteTree(dict):
+    '''Holds all routes with their handlers and builds a pipeline for a given request'''
+    def build_pipeline(self, req):
+        stack = []
+        end_found = self.build_stack(req, stack)
+        if end_found:
+            # endpoint was not found
+            pass
+        return Pipeline(stack)
+
+    def build_path(self, root):
+        for path, node in self.items():
+            path.abs_to(root)
+            if isinstance(node, RouteTree):
+                node.build_path(path)
+
+    def build_stack(self, req, stack):
+        for path, node in self.items():
+            match = path.match(req.PATH_INFO)
+            if match is not None:
+                if isinstance(node, RouteTree):
+                    end = node.build_stack(req, stack)
+                    if end:
+                        return end
+                else:
+                    if req.REQUEST_METHOD in node.methods:
+                        if match:
+                            path.path_args = match
+                        stack.append((path, node))
+                        if path.endpoint:
+                            return True
+
 class Router:
-    '''Builder of routing pipelines'''
+    '''Builder of RouteTree'''
     def __init__(self, root='/'):
+        self.tree = RouteTree()
         self.components = []
-        self.root = root
-        self._is_build = False
+        self.root = Path(root)
 
     def build(self):
-        self.pipeline = Pipeline(self.components, self.root)
-        self.pipeline.build()
-        self._is_build = True
+        self.tree.build_path(self.root)
 
     def application(self, environ, start_response):
         '''handle request for this router'''
-        if not self._is_build:
-            self.build()
         req = Request(environ)
         res = Response()
-        def end(req, res):
-            raise FileNotFoundError
-        return self.pipeline.handler(end, req, res)(environ, start_response)
-
-    def __call__(self, environ, start_response):
-        return self.application(environ, start_response)
-
+        pipeline = self.tree.build_pipeline(req)
+        return pipeline.handler(req, res)(environ, start_response)
+        
     def mount(self, rule, router):
-        handler = Pipeline(router.components, rule)
-        self.components.append(handler)
-        self._is_build = False
+        path = Path(rule, endpoint=False)
+        if path in self.tree:
+            raise IndexError(f'{path} cannot be used twice')
+        self.tree[path] = router.tree
 
     def _create_endpoint(self, handler, rule, methods):
-        endpoint = Middleware(handler, rule, methods, True)
-        self.components.append(endpoint)
-        self._is_build = False
+        path = Path(rule, endpoint=True)
+        self.tree[path] = Middleware(handler, methods)
 
     def _create_middleware(self, handler, rule, methods):
-        middleware = Middleware(handler, rule, methods, False)
-        self.components.append(middleware)
-        self._is_build = False
-    
-    def pipe(self, rule='%', methods=['GET']):
-        def create_wrapper(f):
-            self._create_middleware(f, rule, methods)
-        return create_wrapper
-
-    def get(self, rule='%'):
-        def create_wrapper(f):
-            self._create_endpoint(f, rule, ['GET'])
-        return create_wrapper
-    
-    def post(self, rule='%'):
-        def create_wrapper(f):
-            self._create_endpoint(f, rule, ['POST'])
-        return create_wrapper
-
-    def delete(self, rule='%'):
-        def create_wrapper(f):
-            self._create_endpoint(f, rule, ['DELETE'])
-        return create_wrapper
-    
-    def put(self, rule='%'):
-        def create_wrapper(f):
-            self._create_endpoint(f, rule, ['PUT'])
-        return create_wrapper
+        path = Path(rule)
+        self.tree[path] = Middleware(handler, methods)
