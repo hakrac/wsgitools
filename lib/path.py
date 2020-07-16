@@ -1,6 +1,11 @@
 import re
+from re import escape as e
 
 class Path:
+
+    PATH_CHAR = '\+'
+    PATH_STRING = '\*'
+    PATH_SEGMENTS = '%'
 
     def __init__(self, rule, endpoint=False):
         self.rule = rule.strip()
@@ -9,6 +14,9 @@ class Path:
 
         self.rule = re.sub('[\^\$]', '', self.rule)
         self.rule = re.sub(r'<(?P<arg>\w+)>', '(?P<\g<arg>>\\\\w+)', self.rule)
+        self.rule = re.sub(self.PATH_CHAR, '\\\\w', self.rule)
+        self.rule = re.sub(self.PATH_STRING, '\\\\w+', self.rule)
+        self.rule = re.sub(self.PATH_SEGMENTS, '[^\\\\s]+', self.rule)
 
         if re.match('.*/$', self.rule) is None:
             self.rule += '/'

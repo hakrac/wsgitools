@@ -30,8 +30,7 @@ class PathTestCase(unittest.TestCase):
         self.assertIsNotNone(subpath.match('/root/sub'))
         self.assertIsNotNone(subpath.match('/root/sub/abc'))
         self.assertIsNone(subpath.match('/root'))
-        
-    
+            
     def test_argument_path(self):
         with self.subTest('single path argument'):
             path = Path('/hello/<name>')
@@ -66,5 +65,32 @@ class PathTestCase(unittest.TestCase):
 
             match = path.match('/bob')
             self.assertIsNone(match)
+
+    def test_wildcards_path(self):
+
+        with self.subTest('test wildcard char'):
+            path = Path('/h+llo')
+            self.assertIsNotNone(path.match('/hello'))
+            self.assertIsNotNone(path.match('/hallo'))
+            self.assertIsNone(path.match('/haello'))
+        
+        with self.subTest('test wildcard string'):
+            path = Path('/*/world')
+            self.assertIsNotNone(path.match('/hello/world'))
+            self.assertIsNotNone(path.match('/hell/world'))
+            self.assertIsNone(path.match('/world'))
+            self.assertIsNone(path.match('/hello/nice/world'))
+            
+            path = Path('/*o/world')
+            self.assertIsNotNone(path.match('/hello/world'))
+            self.assertIsNotNone(path.match('/foo/world'))
+            self.assertIsNone(path.match('/hell/world'))
+
+        with self.subTest('test wildcard segments'):
+            path = Path('/%/world')
+            self.assertIsNotNone(path.match('/hello/world'))
+            self.assertIsNotNone(path.match('/hell/world'))
+            self.assertIsNotNone(path.match('/hello/nice/world'))
+            self.assertIsNone(path.match('/world'))
 
 
