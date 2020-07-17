@@ -83,8 +83,9 @@ class Router:
 
     def build(self):
         self.tree.build_path(self.root)
+        return self._application
 
-    def application(self, environ, start_response):
+    def _application(self, environ, start_response):
         '''handle request for this router'''
         req = Request(environ)
         res = Response()

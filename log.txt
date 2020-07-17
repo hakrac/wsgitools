@@ -1,0 +1,4 @@
+[2020-07-17T17:34:35]:create 60000 routes with flask:031.04 seconds
+[2020-07-17T17:34:35]:call route from flask:000.16 seconds
+[2020-07-17T17:34:37]:create 60000 routes wsgitools router:001.50 seconds
+[2020-07-17T17:34:39]:call route from wsgitools.router:002.18 seconds

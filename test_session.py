@@ -36,15 +36,9 @@ def signin(req:Request, res: Response):
 
         sessionManager.signin_user(user)
 
-    # res.status_code = 301
-    # res.headers.append(('Location', req.host_url + '/'))
-    # return res
-    
-    # return redirect('/')
-
-    res.set_data('Signed in')
+    res.status_code = 302
+    res.headers.add('Location', '/')
     return res
-
 
 @router.get('/')
 def index(req, res):
@@ -55,6 +49,5 @@ def index(req, res):
     res.set_data('Index')
     return res
 
-
-with simple_server.make_server('', 3000, router.application) as httpd:
+with simple_server.make_server('', 3000, router.build()) as httpd:
     httpd.serve_forever()

@@ -22,9 +22,8 @@ class RouterTestCase(unittest.TestCase):
         
         router = Router()
         router._create_endpoint(index, '/', ['GET'])
-        router.build()
 
-        c = Client(router.application, Response)
+        c = Client(router.build(), Response)
         res = c.get('/')
         self.assertTrue(self.index_called)
         self.assertEqual(res.data, b'Index')
@@ -52,9 +51,8 @@ class RouterTestCase(unittest.TestCase):
         router._create_middleware(middleware, '/', ['GET'])
         router._create_endpoint(endpoint_a, '/a', ['GET'])
         router._create_endpoint(endpoint, '/', ['GET'])
-        router.build()
 
-        c = Client(router.application, Response)
+        c = Client(router.build(), Response)
         res = c.get('/')
         self.assertTrue(self.middleware_called)
         self.assertTrue(self.endpoint_called)
@@ -65,7 +63,7 @@ class RouterTestCase(unittest.TestCase):
         self.endpoint_called = False
         self.endpoint_a_called = False
 
-        c = Client(router.application, Response)
+        c = Client(router._application, Response)
         res = c.get('/a')
         self.assertTrue(self.middleware_called)
         self.assertFalse(self.endpoint_called)
@@ -104,10 +102,10 @@ class RouterTestCase(unittest.TestCase):
         router_a._create_middleware(middleware_a, '/b', ['GET'])
         router_a._create_endpoint(endpoint_a, '/b', ['GET'])
         router.mount('/a', router_a)
-        router.build()
+        
 
         with self.subTest('test / path'):
-            c = Client(router.application, Response)
+            c = Client(router.build(), Response)
             res = c.get('/')
             self.assertTrue(self.middleware_called)
             self.assertTrue(self.endpoint_called)
@@ -120,7 +118,7 @@ class RouterTestCase(unittest.TestCase):
         self.endpoint_a_called = False
 
         with self.subTest('test /a path'):
-            c = Client(router.application, Response)
+            c = Client(router._application, Response)
             res = c.get('/a/b')
             self.assertTrue(self.middleware_called)
             self.assertFalse(self.endpoint_called)
@@ -145,9 +143,8 @@ class RouterTestCase(unittest.TestCase):
         router = Router()
         router._create_endpoint(index_get, '/', ['GET'])
         router._create_endpoint(index_post, '/', ['POST'])
-        router.build()
-
-        c = Client(router.application, Response)
+        
+        c = Client(router.build(), Response)
         res = c.get('/')
         self.assertTrue(self.index_get_called)
         self.assertFalse(self.index_post_called)
