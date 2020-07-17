@@ -13,10 +13,11 @@ class Path:
         self.path_args = {}
 
         self.rule = re.sub('[\^\$]', '', self.rule)
-        self.rule = re.sub(r'<(?P<arg>\w+)>', '(?P<\g<arg>>\\\\w+)', self.rule)
         self.rule = re.sub(self.PATH_CHAR, '\\\\w', self.rule)
         self.rule = re.sub(self.PATH_STRING, '\\\\w+', self.rule)
-        self.rule = re.sub(self.PATH_SEGMENTS, '[^\\\\s]+', self.rule)
+        self.rule = re.sub(self.PATH_SEGMENTS, '[^\\\\s]*', self.rule)
+        self.rule = re.sub(r'<(?P<arg>\w+)>', '(?P<\g<arg>>\\\\w+)', self.rule)
+
 
         if re.match('.*/$', self.rule) is None:
             self.rule += '/'

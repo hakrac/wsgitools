@@ -1,6 +1,7 @@
+from lib.request import Request
+from lib.response import Response
 from lib.path import Path
 from lib.middleware import Middleware
-from werkzeug import Request, Response
 from wsgiref import simple_server
 import re
 import functools
