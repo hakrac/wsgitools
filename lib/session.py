@@ -1,8 +1,10 @@
+from werkzeug import redirect
 from lib.response import Response
 from lib.request import Request
 from typing import Optional
 from datetime import datetime
 from hashlib import sha256, sha1
+import functools
 
 class UserMixin:
     id: int
@@ -23,7 +25,7 @@ class SessionManager:
         self.signin_route = signin_route
         self.max_age = max_age
 
-    def __call__(self, next, req: Request, res: Response):
+    def __call__(self, req: Request, res: Response, next):
         now = datetime.now()
         # try getting session from cookie
         if self.cookie_id in req.cookies:
@@ -61,4 +63,5 @@ class SessionManager:
             if next:
                 return f(req, res, next)
             return f(req, res)
+        return wrapper
 

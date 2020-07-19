@@ -30,6 +30,13 @@ class PathTestCase(unittest.TestCase):
         self.assertIsNotNone(subpath.match('/root/sub'))
         self.assertIsNotNone(subpath.match('/root/sub/abc'))
         self.assertIsNone(subpath.match('/root'))
+
+        rootpath = Path('/')
+        subpath = Path('%')
+        subpath.abs_to(rootpath)
+        self.assertIsNotNone(subpath.match('/'))
+        self.assertIsNotNone(subpath.match('/abc'))
+        self.assertIsNotNone(subpath.match('/abc/def'))
             
     def test_argument_path(self):
         with self.subTest('single path argument'):
@@ -92,5 +99,12 @@ class PathTestCase(unittest.TestCase):
             self.assertIsNotNone(path.match('/hell/world'))
             self.assertIsNotNone(path.match('/hello/nice/world'))
             self.assertIsNone(path.match('/world'))
+
+            path = Path('%')
+            self.assertIsNotNone(path.match('/'))
+            self.assertIsNotNone(path.match('/a1/b1'))
+            self.assertIsNotNone(path.match('/a/b/c'))
+            self.assertIsNotNone(path.match('/a/'))
+            self.assertIsNotNone(path.match('/a1'))
 
 

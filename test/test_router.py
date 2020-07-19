@@ -39,7 +39,7 @@ class RouterTestCase(unittest.TestCase):
         
         def endpoint_a(req, res):
             self.endpoint_a_called = True
-            res.set_data('A')
+            res.set_data('a')
             return res
 
         def endpoint(req, res):
@@ -68,9 +68,51 @@ class RouterTestCase(unittest.TestCase):
         self.assertTrue(self.middleware_called)
         self.assertFalse(self.endpoint_called)
         self.assertTrue(self.endpoint_a_called)
-        self.assertEqual(res.data, b'A')
+        self.assertEqual(res.data, b'a')
 
-    def test_router(self):
+    def test_wildcard(self):
+        self.middleware_called = False
+        self.endpoint_called = False
+        self.endpoint_a_called = False
+
+        def middleware(req, res, next):
+            self.middleware_called = True
+            return next(req, res)
+        
+        def endpoint_a(req, res):
+            self.endpoint_a_called = True
+            res.set_data('a')
+            return res
+
+        def endpoint(req, res):
+            self.endpoint_called = True
+            res.set_data('Index')
+            return res
+
+        router = Router()
+        router._create_middleware(middleware, '%', ['GET'])
+        router._create_endpoint(endpoint_a, '/a', ['GET'])
+        router._create_endpoint(endpoint, '/', ['GET'])
+
+        c = Client(router.build(), Response)
+        res = c.get('/')
+        self.assertTrue(self.middleware_called)
+        self.assertTrue(self.endpoint_called)
+        self.assertFalse(self.endpoint_a_called)
+        self.assertEqual(res.data, b'Index')
+
+        self.middleware_called = False
+        self.endpoint_called = False
+        self.endpoint_a_called = False
+
+        c = Client(router._application, Response)
+        res = c.get('/a')
+        self.assertTrue(self.middleware_called)
+        self.assertFalse(self.endpoint_called)
+        self.assertTrue(self.endpoint_a_called)
+        self.assertEqual(res.data, b'a')
+
+    def test_subrouter(self):
         self.middleware_called = False
         self.endpoint_called = False
         self.middleware_a_called = False
@@ -158,6 +200,58 @@ class RouterTestCase(unittest.TestCase):
         self.assertTrue(self.index_post_called)
         self.assertEqual(res.data, b'Index_post')
 
+    def test_decorators(self):
+        self.middleware_called = False
+        self.endpoint_called = False
+        self.middleware_a_called = False
+        self.endpoint_a_called = False
+
+        router = Router()
+
+        @router.pipe()
+        def middleware(req, res, next):
+            self.middleware_called = True
+            return next(req, res)
+
+        @router.pipe('/a')
+        def middleware_a(req, res, next):
+            self.middleware_a_called = True
+            return next(req, res)
+
+        @router.get('/a')
+        def index_a(req, res):
+            self.endpoint_a_called = True
+            res.set_data('Index /a')
+            return res
+        
+        @router.get()
+        def index(req, res):
+            self.endpoint_called = True
+            res.set_data('Index /')
+            return res
+        
+
+        c = Client(router.build(), Response)
+        res = c.get('/')
+        self.assertEqual(res.data, b'Index /')
+        self.assertTrue(self.middleware_called)
+        self.assertTrue(self.endpoint_called)
+        self.assertFalse(self.endpoint_a_called)
+        self.assertFalse(self.middleware_a_called)
+
+        self.middleware_called = False
+        self.endpoint_called = False
+        self.middleware_a_called = False
+        self.endpoint_a_called = False
+
+        res = c.get('/a')
+        self.assertEqual(res.data, b'Index /a')
+        self.assertTrue(self.middleware_called)
+        self.assertTrue(self.endpoint_a_called)
+        self.assertTrue(self.middleware_a_called)
+        self.assertFalse(self.endpoint_called)
+
+    
 class RouteTreeTestCase(unittest.TestCase):
 
     def test_nested_tree(self):

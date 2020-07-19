@@ -13,14 +13,15 @@ class Path:
         self.path_args = {}
 
         self._rule = re.sub('[\^\$]', '', self._rule)
+
+        if re.match('.*%$', self._rule) is None:
+            if re.match('.*/$', self._rule) is None:
+                self._rule += '/'
+
         self._rule = re.sub(self.PATH_CHAR, '\\\\w', self._rule)
         self._rule = re.sub(self.PATH_STRING, '\\\\w+', self._rule)
         self._rule = re.sub(self.PATH_SEGMENTS, '[^\\\\s]*', self._rule)
         self._rule = re.sub(r'<(?P<arg>\w+)>', '(?P<\g<arg>>\\\\w+)', self._rule)
-
-
-        if re.match('.*/$', self._rule) is None:
-            self._rule += '/'
 
         if re.match('.*\$$', self._rule) is None and endpoint:
             self._rule += '$'
