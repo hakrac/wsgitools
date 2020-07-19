@@ -17,9 +17,10 @@ class SessionManager:
     
     user = None
 
-    def __init__(self, secret, cookie_identifier='SESSION', max_age=3600):
+    def __init__(self, secret, signin_route, cookie_identifier='SESSION', max_age=3600):
         self.salt = sha1(bytes(secret, 'utf-8')).hexdigest()
         self.cookie_id = cookie_identifier
+        self.signin_route = signin_route
         self.max_age = max_age
 
     def __call__(self, next, req: Request, res: Response):
@@ -52,4 +53,12 @@ class SessionManager:
         self._get_user = f
         return f
     
+    def restrict(self, f):
+        @functools.wraps(f)
+        def wrapper(req, res, next=None):
+            if self.user is None:
+                return redirect(self.signin_route)
+            if next:
+                return f(req, res, next)
+            return f(req, res)
 

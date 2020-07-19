@@ -33,7 +33,7 @@ class RouterTestCase(unittest.TestCase):
         self.endpoint_called = False
         self.endpoint_a_called = False
 
-        def middleware(next, req, res):
+        def middleware(req, res, next):
             self.middleware_called = True
             return next(req, res)
         
@@ -76,7 +76,7 @@ class RouterTestCase(unittest.TestCase):
         self.middleware_a_called = False
         self.endpoint_a_called = False
 
-        def middleware(next, req, res):
+        def middleware(req, res, next):
             self.middleware_called = True
             return next(req, res)
         
@@ -89,7 +89,7 @@ class RouterTestCase(unittest.TestCase):
         router._create_middleware(middleware, '/', ['GET'])
         router._create_endpoint(endpoint, '/', ['GET'])
 
-        def middleware_a(next, req, res):
+        def middleware_a(req, res, next):
             self.middleware_a_called = True
             return next(req, res)
 

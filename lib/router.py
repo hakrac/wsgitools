@@ -32,7 +32,7 @@ class Pipeline:
 
         if path.endpoint:
             return next.handler(req, res)
-        return next.handler(self.run_next, req, res)
+        return next.handler(req, res, self.run_next)
 
     def file_not_found(self, req, res):
         # file was not found in pipeline
