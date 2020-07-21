@@ -1,4 +1,4 @@
-from werkzeug.utils import redirect
+from werkzeug import redirect
 from lib.response import Response
 from lib.request import Request
 from typing import Optional
