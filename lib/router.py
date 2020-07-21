@@ -1,17 +1,14 @@
-from lib.request import Request
-from lib.response import Response
-from lib.path import Path
-from lib.middleware import Middleware
-from wsgiref import simple_server
 import re
 import functools
 import copy
 if __name__ == '__main__':
-    # from lib.path import Path
+    from lib.middleware import Middleware
+    from lib.path import Path
     from lib.response import Response
     from lib.request import Request
 else:
-    # from .path import Path
+    from .middleware import Middleware
+    from .path import Path
     from .response import Response
     from .request import Request
 
