@@ -4,7 +4,7 @@ from re import escape as e
 class Path:
 
     PATH_CHAR = '\+'
-    PATH_STRING = '\*'
+    PATH_SEGMENT = '\*'
     PATH_SEGMENTS = '%'
 
     def __init__(self, rule, endpoint=False):
@@ -19,7 +19,7 @@ class Path:
                 self._rule += '/'
 
         self._rule = re.sub(self.PATH_CHAR, '\\\\w', self._rule)
-        self._rule = re.sub(self.PATH_STRING, '\\\\w+', self._rule)
+        self._rule = re.sub(self.PATH_SEGMENT, '\\\\w+', self._rule)
         self._rule = re.sub(self.PATH_SEGMENTS, '[^\\\\s]*', self._rule)
         self._rule = re.sub(r'<(?P<arg>\w+)>', '(?P<\g<arg>>\\\\w+)', self._rule)
 
