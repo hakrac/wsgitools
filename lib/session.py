@@ -1,67 +1,82 @@
-from werkzeug.utils import redirect
+from werkzeug.utils import redirect, MultiDict
 from lib.response import Response
 from lib.request import Request
 from typing import Optional
 from datetime import datetime
 from hashlib import sha256, sha1
 import functools
+import uuid
+import os
 
-class UserMixin:
-    id: int
-    username: str
-    password: str
-    authenticated: bool
-
-class User(UserMixin):
+class BaseStore:
     pass
 
-class SessionManager:
+
+class MemorySessionStore(BaseStore):
     
-    user = None
+    def __init__(self):
+        self._store = dict()
 
-    def __init__(self, secret, signin_route, cookie_identifier='SESSION', max_age=3600):
-        self.salt = sha1(bytes(secret, 'utf-8')).hexdigest()
-        self.cookie_id = cookie_identifier
-        self.signin_route = signin_route
-        self.max_age = max_age
+    def save(self, id, value):
+        self._store[id] = value
+    
+    def delete(self, id):
+        if id in self._store:
+            self._store.popitem(id)
+    
+    def get(self, id):
+        if id in self._store:
+            return self._store[id]
 
-    def __call__(self, req: Request, res: Response, next):
-        now = datetime.now()
-        # try getting session from cookie
-        if self.cookie_id in req.cookies:
-            # TODO check expiration date
-            user_id = req.cookies[self.cookie_id]
-            self.user = self._get_user(user_id)
+class FileSessionStore(BaseStore):
 
-        result = next(req, res)
+    def __init__(self):
+        if not FileSessionStore._session_dir_available():
+            os.mkdir('session')
 
-        if self.user:
-            res.set_cookie(self.cookie_id, str(self.user.id), self.max_age)
+    @staticmethod
+    def _session_dir_available():
+        for entry in os.scandir('.'):
+            if entry.is_dir and entry.name == 'session':
+                return True
+        return False
+
+    def save(self, id, value):
+        pass
+    
+    def delete(self, id):
+        pass
+
+    def get(self, id):
+        pass
+
+class BaseSessionManager:
+    def __init__(
+        self,
+        generateId,
+        cookie_maxage = 3600,
+        store = None
+    ):
+        if store:
+            self._store = store
         else:
-            res.set_cookie(self.cookie_id, '', max_age=now.timestamp())
+            self._store = MemorySessionStore()
+        self.generateId = generateId
 
-        self.user = None
+        
+
+    def __call__(self, req, res, next):
+        if 'session_id' in req.cookies:
+            session_id = str(req.cookies['session_id'])
+        else:
+            session_id = self.generateId(req)
+        self.session = self._store.get(session_id)
+        if not self.session:
+            self.session = dict()
+        result = next(req, res)
+        self._store.save(session_id, self.session)
+        res.set_cookie('session_id', bytes(session_id, 'utf-8'))
         return result
 
-    def signin_user(self, user):
-        user.authenticated = True
-        self.user = user
 
-    def signout_user(self, user):
-        user.authenticated = False    
-        self.user = None
-
-    def get_user(self, f):
-        self._get_user = f
-        return f
-    
-    def restrict(self, f):
-        @functools.wraps(f)
-        def wrapper(req, res, next=None):
-            if self.user is None:
-                return redirect(self.signin_route)
-            if next:
-                return f(req, res, next)
-            return f(req, res)
-        return wrapper
 
