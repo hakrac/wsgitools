@@ -6,10 +6,18 @@ from datetime import datetime
 from hashlib import sha256, sha1
 import functools
 import uuid
+import json
 import os
 
 class BaseStore:
-    pass
+    def save(self, id, value):
+        pass
+
+    def get(self, id):
+        pass
+    
+    def delete(self, id):
+        pass
 
 class MemorySessionStore(BaseStore):
     
@@ -21,16 +29,16 @@ class MemorySessionStore(BaseStore):
     
     def delete(self, id):
         if id in self._store:
-            self._store.popitem(id)
+            self._store.pop(id)
     
     def get(self, id):
         if id in self._store:
             return self._store[id]
 
-class FileSessionStore(BaseStore):
+class JSONSessionStore(BaseStore):
 
     def __init__(self):
-        if not FileSessionStore._session_dir_available():
+        if not JSONSessionStore._session_dir_available():
             os.mkdir('session')
 
     @staticmethod
@@ -41,13 +49,34 @@ class FileSessionStore(BaseStore):
         return False
 
     def save(self, id, value):
-        pass
+        with open('./session/session.json', 'r+') as fd:
+            try:
+                sessions = json.load(fd)
+            except json.decoder.JSONDecodeError:
+                sessions = dict()
+            sessions[id] = value
+            fd.seek(0)
+            fd.truncate(0)
+            json.dump(sessions, fd)
     
     def delete(self, id):
-        pass
+        with open('./session/session.json', 'r+') as fd:
+            try:
+                sessions = json.load(fd)
+            except json.decoder.JSONDecodeError:
+                sessions = dict()
+            if id in sessions:
+                sessions.pop(id)
+            fd.seek(0)
+            fd.truncate(0)
+            json.dump(sessions, fd)
 
     def get(self, id):
-        pass
+        with open('./session/session.json', 'r') as fd:
+            sessions = json.load(fd)
+            if id in sessions:
+                return sessions[id]
+            return None
 
 class BaseSessionManager:
     def __init__(

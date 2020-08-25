@@ -10,4 +10,4 @@ def time_it(id, fd=sys.stdout):
     yield None
     end = time()
     date = datetime.fromtimestamp(math.floor(end)).isoformat()
-    print(f'[{date}]:{id}:{(end-start):06.2f} seconds', file=fd)
+    print(f'[{date}]:{id} {(end-start):06.2f} seconds', file=fd)

@@ -3,7 +3,7 @@ from werkzeug import redirect
 from werkzeug.test import Client, Headers, EnvironBuilder
 from lib.router import Router
 from lib.response import Response
-from lib.session import BaseSessionManager, MemorySessionStore
+from lib.session import BaseSessionManager, MemorySessionStore, JSONSessionStore
 import uuid
 
 
@@ -52,3 +52,39 @@ class MemorySessionStoreTestCase(unittest.TestCase):
         store.save('foo', 'bar')
         self.assertIsNotNone(store.get('foo'))
         self.assertEqual(store.get('foo'), 'bar')
+
+    def test_delete(self):
+        store = MemorySessionStore()
+        store.save('foo', 'bar')
+        self.assertIsNotNone(store.get('foo'))
+        self.assertEqual(store.get('foo'), 'bar')
+
+        store.delete('foo')
+        self.assertIsNone(store.get('foo'))
+
+class JSONSessionStoreTestCase(unittest.TestCase):
+
+    def setUp(self):
+        pass
+    
+    def tearDown(self):
+        pass
+
+    def test_creation(self):
+        store = JSONSessionStore()
+        self.assertIsNotNone(store)
+    
+    def test_save(self):
+        store = JSONSessionStore()
+        store.save('foo', 'bar')
+        self.assertIsNotNone(store.get('foo'))
+        self.assertEqual(store.get('foo'), 'bar')
+
+    def test_delete(self):
+        store = JSONSessionStore()
+        store.save('foo', 'bar')
+        self.assertIsNotNone(store.get('foo'))
+        self.assertEqual(store.get('foo'), 'bar')
+
+        store.delete('foo')
+        self.assertIsNone(store.get('foo'))
