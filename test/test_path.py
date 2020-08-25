@@ -107,4 +107,19 @@ class PathTestCase(unittest.TestCase):
             self.assertIsNotNone(path.match('/a/'))
             self.assertIsNotNone(path.match('/a1'))
 
+    def test_relative(self):
+        path = '/image/rainbow'
+        rule = Path('/image')
+        relative = rule.mk_rel(path)
+        self.assertEqual(relative, '/rainbow/')
+
+        path = '/image'
+        rule = Path('/image')
+        relative = rule.mk_rel(path)
+        self.assertEqual(relative, '/')
+
+        path = '/'
+        rule = Path('/')
+        relative = rule.mk_rel(path)
+        self.assertEqual(relative, '/')
 

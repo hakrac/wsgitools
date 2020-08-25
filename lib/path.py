@@ -29,10 +29,17 @@ class Path:
         self.regexpath = re.compile(self._rule)
         
     def abs_to(self, path):
+        '''Make this absolute to path'''
         if not path.endpoint:
             self._rule = path._rule + self._rule
             self._rule = re.sub('/+', '/', self._rule)
             self.regexpath = re.compile(self._rule)
+    
+    def mk_rel(self, path):
+        '''Make path relative to this'''
+        if not re.match(r'^.*/$', path):
+            path += '/'
+        return re.sub(self._rule, '/', path)
 
     def match(self, reqpath):
         if not re.match('.*/$', reqpath):

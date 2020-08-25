@@ -11,7 +11,6 @@ import os
 class BaseStore:
     pass
 
-
 class MemorySessionStore(BaseStore):
     
     def __init__(self):
@@ -63,8 +62,6 @@ class BaseSessionManager:
             self._store = MemorySessionStore()
         self.generateId = generateId
 
-        
-
     def __call__(self, req, res, next):
         if 'session_id' in req.cookies:
             session_id = str(req.cookies['session_id'])
@@ -77,6 +74,4 @@ class BaseSessionManager:
         self._store.save(session_id, self.session)
         res.set_cookie('session_id', bytes(session_id, 'utf-8'))
         return result
-
-
 

@@ -16,6 +16,7 @@ class Pipeline:
     '''Represents the execution pipeline of handlers'''
     def __init__(self, stack):
         self.stack = stack
+        self.script_name = ''
         self._i = 0
     
     def run_next(self, req, res):
@@ -27,12 +28,17 @@ class Pipeline:
 
         req.path_args = path.path_args
 
+        # set temporialy script name
+        if self.script_name:
+            req.environ['SCRIPT_NAME'] = self.script_name
+        self.script_name = req.environ['SCRIPT_NAME']
+        req.environ['SCRIPT_NAME'] = path.mk_rel(req.environ['PATH_INFO'])
         if path.endpoint:
             return next.handler(req, res)
         return next.handler(req, res, self.run_next)
 
     def file_not_found(self, req, res):
-        # file was not found in pipeline
+        # endpoint was not found in pipeline
         raise FileNotFoundError
 
     def handler(self, req, res):
@@ -60,9 +66,9 @@ class RouteTree(dict):
             match = path.match(req.PATH_INFO)
             if match is not None:
                 if isinstance(node, RouteTree):
-                    end = node.build_stack(req, stack)
-                    if end:
-                        return end
+                    end_found = node.build_stack(req, stack)
+                    if end_found:
+                        return end_found
                 else:
                     if req.REQUEST_METHOD in node.methods:
                         if match:

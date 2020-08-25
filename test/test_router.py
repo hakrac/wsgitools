@@ -251,6 +251,31 @@ class RouterTestCase(unittest.TestCase):
         self.assertTrue(self.middleware_a_called)
         self.assertFalse(self.endpoint_called)
 
+    def test_script_name(self):
+        self.middleware_called = False
+        router = Router()
+
+        @router.pipe('/img')
+        def images(req, res, next):
+            self.middleware_called = True
+            self.assertEqual(req.environ['SCRIPT_NAME'], '/flower/')
+            return next(req, res)
+
+
+        @router.get('/img/flower')
+        def index(req, res):
+            res.set_data('Flower')
+            return res
+
+        c = Client(router.build(), Response)
+
+        res = c.get('/img/flower')
+        self.assertEqual(res.data, b'Flower')
+        self.assertTrue(self.middleware_called)
+
+
+        
+
     
 class RouteTreeTestCase(unittest.TestCase):
 
